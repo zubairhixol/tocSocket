@@ -32,29 +32,28 @@ io.on("connection", function (socket) {
     if (!roomListArray.includes(roomname)) {
         roomListArray.push(roomname);
     }
-    console.log("Only Room list", roomListArray);
-    console.log("Room Array", roomArr);
-    console.log("User List", usersArr);
+    console.log("Connection: ", roomname);
+    // socket.on("joinSession", function (msg) {
 
-    socket.on("joinSession", function (msg) {
+    //     usersArr["user" + user] = socket.id;
+    // });
+    // socket.on("room", function (msg) {
 
-        usersArr["user" + user] = socket.id;
-    });
-    socket.on("room", function (msg) {
-
-        usersArr["user" + user] = socket.id;
-        if (roomArr.hasOwnProperty(roomname)) {
-            if (!roomArr[roomname].includes(user)) {
-                socket.join(roomname);
-                roomArr[roomname].push(user);
-            }
-        } else {
+    usersArr["user" + user] = socket.id;
+    if (roomArr.hasOwnProperty(roomname)) {
+        if (!roomArr[roomname].includes(user)) {
             socket.join(roomname);
-            roomArr[roomname] = [];
             roomArr[roomname].push(user);
         }
+    } else {
+        socket.join(roomname);
+        roomArr[roomname] = [];
+        roomArr[roomname].push(user);
+    }
 
-    });
+    console.log("Room Joined: ", roomArr);
+
+    // });
     // order placed
     socket.on("order_placed", async function (req) {
         console.log("Order Placed")
@@ -63,34 +62,39 @@ io.on("connection", function (socket) {
             order_id: req.order_id,
         });
     });
-    socket.on("session_ended", async function (req) {
-        usersArr["user" + user] = socket.id;
-        io.sockets
-            .to(locationId + "-" + CONSTANTS.ROLES.KITCHEN_MANAGER)
-            .emit("refresh_app", {
-                message: `App Refreshed`,
-            });
+    // socket.on("session_ended", async function (req) {
+    //     usersArr["user" + user] = socket.id;
+    //     io.sockets
+    //         .to(locationId + "-" + CONSTANTS.ROLES.KITCHEN_MANAGER)
+    //         .emit("refresh_app", {
+    //             message: `App Refreshed`,
+    //         });
+    // });
+    socket.on('called_test', function (data) {
+        console.log("Called test: ", roomArr, data);
+        io.sockets.to(roomname).emit("calling", { user: "Zubair" });
     });
 
     socket.on("Payment_request", async function (req) {
-        console.log("Pay now", req)
+        console.log("Pay now");
         let notification;
         usersArr["user" + user] = socket.id;
         await axios.get(`http://localhost:4000/notification/${req}`)
             .then((response) => {
                 notification = response.data
-                console.log(response.data);
                 let broadCastRoom = locationId + "-" + CONSTANTS.ROLES.MANAGER;
-                io.sockets.to(broadCastRoom).emit("Collect_Payment", {
-                    not_id: req,
-                    Notification: notification,
-                });
-
+                console.log("Paymnet Request: ", broadCastRoom);
                 io.sockets
                     .to(locationId + "-" + CONSTANTS.ROLES.KITCHEN_MANAGER)
                     .emit("Session_orders_detail", {
                         message: `A customer from \n"${notification.table_name}"\nwants to pay the Bill`,
                     });
+                io.sockets.to(broadCastRoom).emit("Collect_Payment", {
+                    not_id: req,
+                    Notification: notification,
+                });
+
+
             })
             .catch((error) => {
                 console.log(error);
@@ -113,7 +117,6 @@ io.on("connection", function (socket) {
     });
     socket.on("get_order_detail", async function (req) {
         usersArr["user" + user] = socket.id;
-        console.log("toast1 socket===>>>>>")
         let order;
         await axios.post(`http://localhost:4000/socketOrderDetail`, {
             order_id: req.order_id,
@@ -122,11 +125,9 @@ io.on("connection", function (socket) {
 
         })
             .then((response) => {
-                order = response.data.result;
-                console.log("Order: ", order)
+                order = response.data;
+                console.log("Order: ");
                 if (order != null) {
-                    console.log("Order: ", order);
-
                     io.sockets.to(roomname).emit("order", {
                         order: JSON.stringify(order),
                         newOrder: req.order_id,
@@ -137,10 +138,6 @@ io.on("connection", function (socket) {
                 console.log(error);
             });
 
-    });
-    socket.on("called_test", async function (req) {
-        console.log(req)
-        socket.emit("calling");
     });
 
     socket.on("check_room_status", function () {
@@ -156,6 +153,7 @@ io.on("connection", function (socket) {
     });
 
     socket.on("disconnect", function () {
+        console.log("Disconnect before", roomArr, roomname)
         if (roomArr[roomname]) {
             const index = roomArr[roomname].indexOf(user);
             if (index > -1) {
