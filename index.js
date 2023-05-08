@@ -77,11 +77,10 @@ io.on("connection", function (socket) {
 
     socket.on("Payment_request", async function (req) {
         console.log("Pay now");
-        let notification;
         usersArr["user" + user] = socket.id;
         await axios.get(`http://localhost:4000/notification/${req}`)
             .then((response) => {
-                notification = response.data
+                let notification = response.data
                 let broadCastRoom = locationId + "-" + CONSTANTS.ROLES.MANAGER;
                 console.log("Paymnet Request: ", broadCastRoom);
                 io.sockets
@@ -102,13 +101,13 @@ io.on("connection", function (socket) {
     });
     socket.on("Call_Waiter_request", async function (req) {
         usersArr["user" + user] = socket.id;
-        let notification;
         await axios.get(`http://localhost:4000/notification/${req}`)
             .then((response) => {
+                let notification = response.data
                 io.sockets
                     .to(locationId + "-" + CONSTANTS.ROLES.KITCHEN_MANAGER)
                     .emit("Call_Waiter", {
-                        message: `A customer from \n"${response.data.table_name}"\nis calling to Waiter`,
+                        message: `A customer from \n"${notification.table_name}"\nis calling to Waiter`,
                     });
             })
             .catch((error) => {
@@ -117,7 +116,6 @@ io.on("connection", function (socket) {
     });
     socket.on("get_order_detail", async function (req) {
         usersArr["user" + user] = socket.id;
-        let order;
         await axios.post(`http://localhost:4000/socketOrderDetail`, {
             order_id: req.order_id,
             locationId: locationId,
@@ -125,7 +123,7 @@ io.on("connection", function (socket) {
 
         })
             .then((response) => {
-                order = response.data;
+                let order = response.data;
                 console.log("Order: ");
                 if (order != null) {
                     io.sockets.to(roomname).emit("order", {
