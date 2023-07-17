@@ -20,7 +20,7 @@ const io = socketIO(server, {
 });
 
 // var roomArr = [];
-// var usersArr = [];
+var usersArr = [];
 // var roomListArray = [];
 io.on("connection", function (socket) {
   let User = {
@@ -33,6 +33,7 @@ io.on("connection", function (socket) {
   socket.join(User);
   console.log("user connected: ", User);
   socket.on("driver's chat", async (msg) => {
+    usersArr["user" + User] = socket.id;
     console.log("message: " + msg);
     await axios
       .post(`https://delivercart.co.uk/admin/index.php/api2/send_message`, msg)
@@ -48,6 +49,7 @@ io.on("connection", function (socket) {
       });
   });
   socket.on("reciever's chat", async (msg) => {
+    usersArr["user" + User] = socket.id;
     console.log("message: " + msg);
     await axios
       .post(`https://delivercart.co.uk/admin/index.php/api2/send_message`, msg)
