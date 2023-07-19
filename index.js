@@ -6,8 +6,7 @@ const app = express();
 const logger = require("morgan");
 app.use(logger("dev"));
 const axios = require("axios");
-
-// const authSocketMiddleware = require("./socketauth");
+var FormData = require("form-data");
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
@@ -19,38 +18,62 @@ const io = socketIO(server, {
   reconnect: true,
 });
 
-// var roomArr = [];
 var usersArr = [];
-// var roomListArray = [];
+var roomListArray = [];
 io.on("connection", function (socket) {
-  let chatRoom = {
-    sender_id: socket.handshake.auth.sender_id,
-    store_id: socket.handshake.auth.store_id,
-    receiver_id: socket.handshake.auth.receiver_id,
-    sale_id: socket.handshake.auth.sale_id,
-    type: "text",
-    status: 1,
-    message: "",
-  };
-  console.log("Connection: ", chatRoom.sender_id);
-  socket.join(chatRoom.sender_id);
-  // socket.join(chatRoom.receiver_id);
-  console.log("user connected: ", chatRoom.sender_id);
+  var roomname =
+    socket.handshake.auth.sale_id +
+    "-" +
+    socket.handshake.auth.sender_id +
+    "-" +
+    socket.handshake.auth.receiver_id;
+
+  socket.join(roomname);
+  usersArr["user-" + socket.handshake.auth.sender_id] = socket.id;
+
+  if (!roomListArray.includes(roomname)) {
+    roomListArray.push(roomname);
+  }
+
+  console.log("user connected with room: ", roomname);
+  console.log("user connected socketId: ", usersArr);
+  console.log("user connected rooms list: ", roomListArray);
+
   socket.on("driver's chat", async (msg) => {
-    usersArr["user" + chatRoom.sender_id] = socket.id;
+    usersArr["user-" + socket.handshake.auth.sender_id] = socket.id;
     console.log("message: " + msg);
-    chatRoom.message = `${msg}`;
+    const msgObject = new FormData();
+    msgObject.append("sender_id", socket.handshake.auth.sender_id);
+    msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
+    msgObject.append("store_id", socket.handshake.auth.store_id);
+    msgObject.append("sale_id", socket.handshake.auth.sale_id);
+    msgObject.append("type", "text");
+    msgObject.append("status", 1);
+    msgObject.append("message", "");
+    msgObject.append("message", `${msg}`);
+
+    // console.log("messageObj: ", msgObject);
+    console.log("messageObj: ", objectifyFormdata(msgObject));
+
     await axios
-      .post(`https://delivercart.co.uk/admin/index.php/api2/send_message`, {
-        chatRoom,
-      })
+      .post(
+        `https://delivercart.co.uk/admin/index.php/api2/send_message`,
+        msgObject
+      )
       .then((response) => {
-        let message = response.data;
-        console.log("message: ");
+        const message = response.data.data;
         if (message != null) {
-          io.sockets
-            .to(chatRoom.receiver_id)
-            .emit("driver's message", { chatRoom });
+          for (const key in message) {
+            if (message.hasOwnProperty(key)) {
+              // Convert the value to a number using parseInt if it's a string representation of an integer
+              if (!isNaN(message[key]) && message[key] !== "") {
+                message[key] = parseInt(message[key]);
+              }
+            }
+          }
+          console.log("API response:", message);
+
+          io.sockets.to(roomname).emit("driver's message", message);
         }
       })
       .catch((error) => {
@@ -58,16 +81,37 @@ io.on("connection", function (socket) {
       });
   });
   socket.on("reciever's chat", async (msg) => {
-    usersArr["user" + chatRoom.receiver_id] = socket.id;
+    usersArr["user-" + socket.handshake.auth.receiver_id] = socket.id;
     console.log("message: " + msg);
-    chatRoom.message = `${msg}`;
+    const msgObject = new FormData();
+    msgObject.append("sender_id", socket.handshake.auth.sender_id);
+    msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
+    msgObject.append("store_id", socket.handshake.auth.store_id);
+    msgObject.append("sale_id", socket.handshake.auth.sale_id);
+    msgObject.append("type", "text");
+    msgObject.append("status", 1);
+    msgObject.append("message", "");
+    msgObject.append("message", `${msg}`);
+
+    console.log("messageObj: ", objectifyFormdata(msgObject));
     await axios
-      .post(`https://delivercart.co.uk/admin/index.php/api2/send_message`, msg)
+      .post(
+        `https://delivercart.co.uk/admin/index.php/api2/send_message`,
+        msgObject
+      )
       .then((response) => {
-        let message = response.data;
-        console.log("message: ");
+        const message = response.data.data;
         if (message != null) {
-          io.sockets.to(chatRoom.sender_id).emit("reciever's message", { msg });
+          for (const key in message) {
+            if (message.hasOwnProperty(key)) {
+              // Convert the value to a number using parseInt if it's a string representation of an integer
+              if (!isNaN(message[key]) && message[key] !== "") {
+                message[key] = parseInt(message[key]);
+              }
+            }
+          }
+          console.log("API response:", message);
+          io.sockets.to(roomname).emit("reciever's message", msg);
         }
       })
       .catch((error) => {
@@ -75,15 +119,32 @@ io.on("connection", function (socket) {
       });
   });
   socket.on("disconnect", function () {
-    const index = usersArr["user" + chatRoom.sender_id].indexOf(
-      "user" + chatRoom.sender_id
+    delete usersArr["user-" + socket.handshake.auth.sender_id];
+    delete usersArr["user-" + socket.handshake.auth.receiver_id];
+    console.log(
+      "Disconnect",
+      socket.handshake.auth.sender_id,
+      "   ",
+      socket.handshake.auth.receiver_id
     );
-    if (index > -1) {
-      usersArr["user" + chatRoom.sender_id].splice(index, 1); // 2nd parameter means remove one item only
-      socket.leave(socket.id);
-    }
-    delete usersArr["user" + chatRoom.sender_id];
-    console.log("Disconnect", chatRoom.sender_id);
   });
 });
+const objectifyFormdata = (Object) => {
+  return Object.getBuffer()
+    .toString()
+    .split(Object.getBoundary())
+    .filter((e) => e.includes("form-data"))
+    .map((e) =>
+      e
+        .replace(/[\-]+$/g, "")
+        .replace(/^[\-]+/g, "")
+        .match(/\; name\=\"([^\"]+)\"(.*)/s)
+        .filter((v, i) => i == 1 || i == 2)
+        .map((e) => e.trim())
+    )
+    .reduce((acc, cur) => {
+      acc[cur[0]] = cur[1];
+      return acc;
+    }, {});
+};
 server.listen(PORT, console.log("Server is Listening for port: " + PORT));
