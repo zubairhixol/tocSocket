@@ -29,6 +29,9 @@ io.on("connection", function (socket) {
     socket.handshake.auth.receiver_id;
 
   socket.join(roomname);
+  console.log("sale_id:", socket.handshake.auth.sale_id);
+  console.log("sender_id:", socket.handshake.auth.sender_id);
+  console.log("receiver_id:", socket.handshake.auth.receiver_id);
   usersArr["user-" + socket.handshake.auth.sender_id] = socket.id;
 
   if (!roomListArray.includes(roomname)) {
@@ -39,17 +42,15 @@ io.on("connection", function (socket) {
   console.log("user connected socketId: ", usersArr);
   console.log("user connected rooms list: ", roomListArray);
 
-  socket.on("driver's chat", async (msg) => {
+  socket.on("driver_chat", async (msg) => {
     usersArr["user-" + socket.handshake.auth.sender_id] = socket.id;
     console.log("message: " + msg);
-    const msgObject = new FormData();
+    var msgObject = new FormData();
     msgObject.append("sender_id", socket.handshake.auth.sender_id);
     msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
-    msgObject.append("store_id", socket.handshake.auth.store_id);
     msgObject.append("sale_id", socket.handshake.auth.sale_id);
     msgObject.append("type", "text");
     msgObject.append("status", 1);
-    msgObject.append("message", "");
     msgObject.append("message", `${msg}`);
 
     // console.log("messageObj: ", msgObject);
@@ -73,24 +74,22 @@ io.on("connection", function (socket) {
           }
           console.log("API response:", message);
 
-          io.sockets.to(roomname).emit("driver's message", message);
+          io.sockets.to(roomname).emit("driver_message", message);
         }
       })
       .catch((error) => {
         console.log(error);
       });
   });
-  socket.on("reciever's chat", async (msg) => {
+  socket.on("receiver_chat", async (msg) => {
     usersArr["user-" + socket.handshake.auth.receiver_id] = socket.id;
     console.log("message: " + msg);
-    const msgObject = new FormData();
+    var msgObject = new FormData();
     msgObject.append("sender_id", socket.handshake.auth.sender_id);
     msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
-    msgObject.append("store_id", socket.handshake.auth.store_id);
     msgObject.append("sale_id", socket.handshake.auth.sale_id);
     msgObject.append("type", "text");
     msgObject.append("status", 1);
-    msgObject.append("message", "");
     msgObject.append("message", `${msg}`);
 
     console.log("messageObj: ", objectifyFormdata(msgObject));
@@ -110,8 +109,9 @@ io.on("connection", function (socket) {
               }
             }
           }
-          console.log("API response:", message);
-          io.sockets.to(roomname).emit("reciever's message", msg);
+          console.log("API response:", message, "roomname", roomname);
+          io.sockets.to(roomname).emit("receiver_message", message);
+          console.log("event run");
         }
       })
       .catch((error) => {
@@ -121,6 +121,16 @@ io.on("connection", function (socket) {
   socket.on("disconnect", function () {
     delete usersArr["user-" + socket.handshake.auth.sender_id];
     delete usersArr["user-" + socket.handshake.auth.receiver_id];
+    let index = roomListArray.indexOf(roomname);
+
+    // Check if the 'roomname' exists in the array
+    if (index !== -1) {
+      // Use splice to remove the 'roomname' from the array
+      roomListArray.splice(index, 1);
+    }
+
+    // Now 'roomname' is removed from roomListArray
+    console.log(roomListArray);
     console.log(
       "Disconnect",
       socket.handshake.auth.sender_id,
