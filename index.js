@@ -42,16 +42,17 @@ io.on("connection", function (socket) {
   console.log("user connected socketId: ", usersArr);
   console.log("user connected rooms list: ", roomListArray);
 
-  socket.on("driver_chat", async (msg) => {
+  socket.on("driver_chat", async (obj) => {
     usersArr["user-" + socket.handshake.auth.sender_id] = socket.id;
-    console.log("message: " + msg);
+    console.log(obj.user_type, ":", obj.msg);
     var msgObject = new FormData();
     msgObject.append("sender_id", socket.handshake.auth.sender_id);
     msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
     msgObject.append("sale_id", socket.handshake.auth.sale_id);
     msgObject.append("type", "text");
     msgObject.append("status", 1);
-    msgObject.append("message", `${msg}`);
+    msgObject.append("message", `${obj.msg}`);
+    msgObject.append("user_type", `${obj.user_type}`);
 
     // console.log("messageObj: ", msgObject);
     console.log("messageObj: ", objectifyFormdata(msgObject));
@@ -62,7 +63,8 @@ io.on("connection", function (socket) {
         msgObject
       )
       .then((response) => {
-        const message = response.data.data;
+        var message = response.data.data;
+        console.log("API:", message);
         if (message != null) {
           for (const key in message) {
             if (message.hasOwnProperty(key)) {
@@ -81,16 +83,17 @@ io.on("connection", function (socket) {
         console.log(error);
       });
   });
-  socket.on("receiver_chat", async (msg) => {
+  socket.on("receiver_chat", async (obj) => {
     usersArr["user-" + socket.handshake.auth.receiver_id] = socket.id;
-    console.log("message: " + msg);
+    console.log(obj.user_type, ":", obj.msg);
     var msgObject = new FormData();
     msgObject.append("sender_id", socket.handshake.auth.sender_id);
     msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
     msgObject.append("sale_id", socket.handshake.auth.sale_id);
     msgObject.append("type", "text");
     msgObject.append("status", 1);
-    msgObject.append("message", `${msg}`);
+    msgObject.append("message", `${obj.msg}`);
+    msgObject.append("user_type", `${obj.user_type}`);
 
     console.log("messageObj: ", objectifyFormdata(msgObject));
     await axios
@@ -134,7 +137,7 @@ io.on("connection", function (socket) {
     console.log(
       "Disconnect",
       socket.handshake.auth.sender_id,
-      "   ",
+      "&&",
       socket.handshake.auth.receiver_id
     );
   });
