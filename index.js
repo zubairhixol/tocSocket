@@ -1,7 +1,6 @@
 const express = require("express");
 const http = require("http");
 const socketIO = require("socket.io");
-const CONSTANTS = require("./constants");
 const app = express();
 const logger = require("morgan");
 app.use(logger("dev"));
