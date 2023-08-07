@@ -12,6 +12,7 @@ const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
     origin: "*", // Allow any origin for testing purposes. This should be changed on production.
+    methods: ["GET", "POST"],
   },
   secure: false,
   reconnect: true,
