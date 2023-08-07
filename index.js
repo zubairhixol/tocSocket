@@ -20,7 +20,7 @@ const io = socketIO(server, {
 
 var usersArr = [];
 var roomListArray = [];
-io.on("connection", function (socket) {
+io.on("connection", async function (socket) {
   var roomname =
     socket.handshake.auth.sale_id +
     "-" +
