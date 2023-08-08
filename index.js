@@ -49,7 +49,7 @@ io.on("connection", async function (socket) {
     msgObject.append("sender_id", socket.handshake.auth.sender_id);
     msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
     msgObject.append("sale_id", socket.handshake.auth.sale_id);
-    msgObject.append("message_type", "text");
+    msgObject.append("message_type", obj.message_type);
     msgObject.append("status", 1);
     msgObject.append("message", `${obj.msg}`);
     msgObject.append("user_type", `${obj.user_type}`);
@@ -90,7 +90,7 @@ io.on("connection", async function (socket) {
     msgObject.append("sender_id", socket.handshake.auth.sender_id);
     msgObject.append("receiver_id", socket.handshake.auth.receiver_id);
     msgObject.append("sale_id", socket.handshake.auth.sale_id);
-    msgObject.append("message_type", "text");
+    msgObject.append("message_type", obj.message_type);
     msgObject.append("status", 1);
     msgObject.append("message", `${obj.msg}`);
     msgObject.append("user_type", `${obj.user_type}`);
