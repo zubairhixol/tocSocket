@@ -75,8 +75,14 @@ io.on("connection", async function (socket) {
             }
           }
           console.log("API response:", message);
-
           io.sockets.to(roomname).emit("driver_message", message);
+          if (
+            usersArr["user-" + socket.handshake.auth.receiver_id] != undefined
+          ) {
+            io.sockets
+              .to(usersArr["user-" + socket.handshake.auth.receiver_id])
+              .emit("driver_message", message);
+          }
         }
       })
       .catch((error) => {
@@ -84,7 +90,7 @@ io.on("connection", async function (socket) {
       });
   });
   socket.on("receiver_chat", async (obj) => {
-    usersArr["user-" + socket.handshake.auth.receiver_id] = socket.id;
+    usersArr["user-" + socket.handshake.auth.sender_id] = socket.id;
     console.log(obj.user_type, ":", obj.msg);
     var msgObject = new FormData();
     msgObject.append("sender_id", socket.handshake.auth.sender_id);
@@ -115,6 +121,13 @@ io.on("connection", async function (socket) {
           console.log("API response:", message, "roomname", roomname);
           io.sockets.to(roomname).emit("receiver_message", message);
           console.log("event run");
+          if (
+            usersArr["user-" + socket.handshake.auth.receiver_id] != undefined
+          ) {
+            io.sockets
+              .to(usersArr["user-" + socket.handshake.auth.receiver_id])
+              .emit("receiver_message", message);
+          }
         }
       })
       .catch((error) => {
