@@ -134,6 +134,15 @@ io.on("connection", async function (socket) {
         console.log(error);
       });
   });
+
+  socket.on("update_message_status", async (obj) => {
+    if (usersArr["user-" + obj.sender_id] != undefined) {
+      io.sockets
+        .to(usersArr["user-" + obj.sender_id])
+        .emit("message_seen", obj);
+    }
+  });
+
   socket.on("disconnect", function () {
     delete usersArr["user-" + socket.handshake.auth.sender_id];
     delete usersArr["user-" + socket.handshake.auth.receiver_id];
