@@ -143,6 +143,23 @@ io.on("connection", async function (socket) {
     }
   });
 
+  socket.on("typing_on", async (obj) => {
+    if (usersArr["user-" + obj.receiver_id] != undefined) {
+      io.sockets
+        .to(usersArr["user-" + obj.receiver_id])
+        .emit("typing", obj);
+    }
+  });
+
+  socket.on("typing_off", async (obj) => {
+    if (usersArr["user-" + obj.receiver_id] != undefined) {
+      io.sockets
+        .to(usersArr["user-" + obj.receiver_id])
+        .emit("typing_offed", obj);
+    }
+  });
+
+
   socket.on("disconnect", function () {
     delete usersArr["user-" + socket.handshake.auth.sender_id];
     delete usersArr["user-" + socket.handshake.auth.receiver_id];
