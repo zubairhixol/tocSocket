@@ -145,9 +145,7 @@ io.on("connection", async function (socket) {
 
   socket.on("typing_on", async (obj) => {
     if (usersArr["user-" + obj.receiver_id] != undefined) {
-      io.sockets
-        .to(usersArr["user-" + obj.receiver_id])
-        .emit("typing", obj);
+      io.sockets.to(usersArr["user-" + obj.receiver_id]).emit("typing", obj);
     }
   });
 
@@ -159,18 +157,21 @@ io.on("connection", async function (socket) {
     }
   });
 
-  socket.on("online_status" , async (obj) => {
+  socket.on("online_status", async (obj) => {
     obj.user_status = "Offline";
     if (usersArr["user-" + obj.online_user] != undefined) {
       obj.user_status = "Online";
     }
 
     io.sockets
-        .to(usersArr["user-" + obj.user_id])
-        .emit("update_online_status", obj);
-  })
+      .to(usersArr["user-" + obj.user_id])
+      .emit("update_online_status", obj);
+  });
 
   socket.on("disconnect", function () {
+    if (socket.id != usersArr["user-" + socket.handshake.auth.sender_id]) {
+      return;
+    }
     delete usersArr["user-" + socket.handshake.auth.sender_id];
     delete usersArr["user-" + socket.handshake.auth.receiver_id];
     let index = roomListArray.indexOf(roomname);
